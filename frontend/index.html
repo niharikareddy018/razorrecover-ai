@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RazorRecover AI — Live Recovery Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F6F8;
+    --surface: #FFFFFF;
+    --border: #E3E7ED;
+    --text: #1B2130;
+    --text-dim: #6B7280;
+    --text-faint: #9AA2B1;
+
+    --teal: #2F6F6B;
+    --teal-light: #E6F0EF;
+    --success: #3E8E5A;
+    --success-light: #E9F5EE;
+    --warning: #B7791F;
+    --warning-light: #FBF1DF;
+    --danger: #B4483F;
+    --danger-light: #FBEAE8;
+    --neutral: #5B6472;
+    --neutral-light: #EEF0F3;
+
+    --terminal-bg: #12181F;
+    --terminal-line: #1B232D;
+    --terminal-text: #D7DEE8;
+    --terminal-dim: #7C8798;
+    --terminal-accent: #6EC0B6;
+
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a, button { font-family: inherit; }
+  button:focus-visible, a:focus-visible, .txn-row:focus-visible {
+    outline: 2px solid var(--teal); outline-offset: 2px;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    background: linear-gradient(120deg, #16302E 0%, #1F4743 55%, #2F6F6B 100%);
+    color: white;
+    padding: 26px 36px 22px;
+  }
+  .header-top {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap;
+  }
+  .brand h1 {
+    margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.3px;
+  }
+  .brand h1 .accent { color: #8FD9CE; }
+  .brand p { margin: 4px 0 0; color: #B9CFCC; font-size: 13.5px; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .live-indicator {
+    display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600;
+    color: #CDEAE5; background: rgba(255,255,255,0.08); padding: 7px 12px 7px 10px;
+    border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-faint); }
+  .dot.on { background: #6EE7B7; box-shadow: 0 0 0 0 rgba(110,231,183,0.6); animation: pulse 1.6s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(110,231,183,0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(110,231,183,0); }
+    100% { box-shadow: 0 0 0 0 rgba(110,231,183,0); }
+  }
+
+  button {
+    border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+    font-size: 13.5px; padding: 9px 16px; transition: filter 0.15s ease, transform 0.1s ease;
+  }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: #8FD9CE; color: #0E2624; }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-primary.running { background: #E88A6E; color: #3A1408; }
+  .btn-ghost { background: rgba(255,255,255,0.1); color: #EAF3F1; border: 1px solid rgba(255,255,255,0.22); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.16); }
+
+  .pipeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 18px; }
+  .pipeline span {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.16);
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; color: #D3E6E3;
+  }
+  .pipeline .arrow { background: none; border: none; color: #7FB8B0; padding: 5px 2px; }
+
+  main { padding: 26px 36px 60px; max-width: 1360px; margin: 0 auto; }
+
+  .section-title {
+    font-size: 13px; color: #4B5566; font-weight: 700; margin: 34px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .hint { font-weight: 500; color: var(--text-faint); font-size: 12px; }
+
+  /* ---------- hero stats ---------- */
+  .hero-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+  @media (max-width: 820px) { .hero-grid { grid-template-columns: 1fr; } }
+  .hero-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 26px; position: relative; overflow: hidden;
+  }
+  .hero-card .hero-label { font-size: 13px; color: var(--text-dim); font-weight: 600; }
+  .hero-card .hero-value {
+    font-family: var(--font-mono); font-size: 46px; font-weight: 600; margin-top: 6px;
+    color: var(--teal); letter-spacing: -1px; transition: opacity 0.2s ease;
+  }
+  .hero-card .hero-sub { font-size: 13px; color: var(--text-faint); margin-top: 6px; }
+  .hero-card.money .hero-value { color: var(--success); }
+  .sparkline { position: absolute; right: 20px; bottom: 18px; opacity: 0.9; }
+
+  /* ---------- stat grid ---------- */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 15px 17px; border-left: 3px solid var(--neutral);
+  }
+  .card.accent-teal { border-left-color: var(--teal); }
+  .card.accent-success { border-left-color: var(--success); }
+  .card.accent-warning { border-left-color: var(--warning); }
+  .card.accent-danger { border-left-color: var(--danger); }
+  .card .label { font-size: 11.5px; color: var(--text-dim); font-weight: 600; }
+  .card .value { font-family: var(--font-mono); font-size: 24px; font-weight: 600; margin-top: 5px; color: var(--text); }
+  .card .sub { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; }
+
+  /* ---------- two column: table + live feed ---------- */
+  .split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .split { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  }
+  .panel-head {
+    padding: 13px 18px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 13.5px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel-head .count { font-weight: 500; color: var(--text-faint); font-size: 12px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #F0F2F6; }
+  th { background: #FAFBFC; color: var(--text-dim); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+  tbody tr { transition: background 0.15s ease; cursor: pointer; }
+  tbody tr:hover { background: #FAFCFB; }
+  tbody tr:last-child td { border-bottom: none; }
+  .amount { font-family: var(--font-mono); }
+
+  .status-pill {
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; display: inline-block;
+    white-space: nowrap;
+  }
+  .status-recovered { background: var(--success-light); color: var(--success); }
+  .status-retrying { background: var(--warning-light); color: var(--warning); }
+  .status-failed { background: var(--danger-light); color: var(--danger); }
+  .status-escalated { background: #EFE9F7; color: #6A4FA0; }
+  .status-given_up { background: var(--neutral-light); color: var(--neutral); }
+  .status-reconciling { background: #E8ECFB; color: #4A5DB0; }
+
+  /* ---------- compliance panel ---------- */
+  .compliance-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .compliance-head {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .compliance-head .reg-badge {
+    font-size: 11px; font-weight: 600; color: var(--teal); background: var(--teal-light);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .compliance-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  @media (max-width: 900px) { .compliance-grid { grid-template-columns: repeat(2, 1fr); } }
+  .compliance-stat { text-align: left; }
+  .compliance-stat .num { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--text); }
+  .compliance-stat .cap { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+
+  .empty-state { padding: 46px 24px; text-align: center; color: var(--text-faint); font-size: 13.5px; }
+  .empty-state .big { font-size: 26px; margin-bottom: 6px; }
+
+  /* ---------- terminal feed ---------- */
+  .terminal {
+    background: var(--terminal-bg); max-height: 520px; overflow-y: auto;
+    font-family: var(--font-mono); font-size: 12px; padding: 4px 0;
+  }
+  .terminal::-webkit-scrollbar { width: 8px; }
+  .terminal::-webkit-scrollbar-thumb { background: #2A333F; border-radius: 8px; }
+  .feed-line {
+    padding: 9px 16px; border-bottom: 1px solid var(--terminal-line);
+    display: flex; gap: 9px; align-items: baseline;
+  }
+  .feed-line.enter { animation: slideIn 0.35s ease; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); background: rgba(110,192,182,0.12); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .feed-tag {
+    flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .tag-detect { background: #2A3542; color: #9FB4C7; }
+  .tag-reconcile { background: #2E2A44; color: #B4A6E0; }
+  .tag-notify { background: #1F3542; color: #7FC4D9; }
+  .tag-diagnose { background: #1F3D3A; color: var(--terminal-accent); }
+  .tag-policy { background: #3A331C; color: #E0BE72; }
+  .tag-decide { background: #23304A; color: #9AB1E8; }
+  .tag-execute { background: #3A2340; color: #D093DE; }
+  .tag-verify { background: #1E3A28; color: #7ED9A0; }
+  .feed-text { color: var(--terminal-text); line-height: 1.5; }
+  .feed-text .cust { color: #8FD9CE; font-weight: 600; }
+  .feed-blocked { color: #E88A6E !important; }
+
+  .footer-note {
+    color: var(--text-faint); font-size: 12px; margin-top: 34px; text-align: center;
+  }
+
+  /* ---------- modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(15,20,28,0.55); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 14px; max-width: 560px; width: 100%;
+    max-height: 80vh; overflow-y: auto; padding: 22px 24px;
+  }
+  .modal h3 { margin: 0 0 4px; font-size: 17px; }
+  .modal .modal-sub { color: var(--text-faint); font-size: 12.5px; margin-bottom: 16px; }
+  .modal-close { float: right; background: var(--neutral-light); color: var(--text-dim); border-radius: 6px; padding: 5px 10px; font-size: 12px; }
+  .trail-item { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid #F0F2F6; }
+  .trail-item:last-child { border-bottom: none; }
+  .trail-item .feed-tag { margin-top: 2px; }
+  .trail-item .detail { font-size: 13px; color: var(--text); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <h1>RAZOR<span class="accent">RECOVER</span> AI</h1>
+      <p>Autonomous payment recovery agent — live monitoring dashboard</p>
+    </div>
+    <div class="controls">
+      <div class="live-indicator"><span class="dot" id="live-dot"></span><span id="live-label">Simulation stopped</span></div>
+      <button class="btn-primary" id="sim-toggle" onclick="toggleSimulation()">Start live simulation</button>
+      <button class="btn-ghost" onclick="seedBatch()">Seed 40 at once</button>
+      <button class="btn-ghost" onclick="resetDemo()">Reset</button>
+    </div>
+  </div>
+  <div class="pipeline">
+    <span>01 Detect</span><span class="arrow">→</span><span>02 Diagnose</span><span class="arrow">→</span>
+    <span>03 Decide</span><span class="arrow">→</span><span>04 Recover</span><span class="arrow">→</span>
+    <span>05 Verify</span><span class="arrow">→</span><span>06 Learn</span>
+  </div>
+</header>
+
+<main>
+  <div class="section-title">Recovery performance <span class="hint">— updates automatically</span></div>
+  <div class="hero-grid">
+    <div class="hero-card">
+      <div class="hero-label">Recovery rate</div>
+      <div class="hero-value" id="hero-rate">0%</div>
+      <div class="hero-sub" id="hero-rate-sub">vs ~31% industry average</div>
+      <svg class="sparkline" id="sparkline" width="140" height="40" viewBox="0 0 140 40"></svg>
+    </div>
+    <div class="hero-card money">
+      <div class="hero-label">Revenue recovered</div>
+      <div class="hero-value" id="hero-revenue">₹0</div>
+      <div class="hero-sub" id="hero-revenue-sub">Directly attributed to the agent</div>
+    </div>
+  </div>
+
+  <div class="section-title">At a glance</div>
+  <div class="grid" id="metrics-grid"></div>
+
+  <div class="section-title">Compliant escalation <span class="hint">— RBI Digital Payments – E-mandate Framework, 2026</span></div>
+  <div class="compliance-panel">
+    <div class="compliance-head">
+      <span style="font-size:12.5px; color:var(--text-dim);">Every number below is a real control that fired during this run — not a static claim.</span>
+      <span class="reg-badge">AFA threshold: ₹15,000 · 24h pre-debit notice</span>
+    </div>
+    <div class="compliance-grid" id="compliance-grid"></div>
+  </div>
+
+  <div class="section-title">Live view</div>
+  <div class="split">
+    <div class="panel">
+      <div class="panel-head">Recent transactions <span class="count" id="txn-count">0 shown</span></div>
+      <table>
+        <thead><tr><th>Customer</th><th>Amount</th><th>Method</th><th>Status</th><th>Reason</th></tr></thead>
+        <tbody id="txn-body"></tbody>
+      </table>
+      <div class="empty-state" id="txn-empty" style="display:none;">
+        <div class="big">💤</div>
+        No transactions yet. Click <strong>"Start live simulation"</strong> to watch payments arrive and recover in real time.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">Live activity feed <span class="count" id="feed-count">0 events</span></div>
+      <div class="terminal" id="feed"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">Backend: FastAPI + SQLite &nbsp;•&nbsp; Every outcome below comes from the real diagnosis → policy → execution pipeline, not scripted data &nbsp;•&nbsp; Full audit trail per decision</div>
+</main>
+
+<div class="modal-backdrop" id="modal-backdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">Close</button>
+    <h3 id="modal-title">Audit trail</h3>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const API = "/api";
+let simRunning = false;
+let simTimer = null;
+let recentRates = [];
+let knownFeedIds = new Set();
+
+function fmtMoney(n) {
+  return "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+}
+function stageTagClass(stage) {
+  return { detect: "tag-detect", reconcile: "tag-reconcile", notify: "tag-notify", diagnose: "tag-diagnose", policy: "tag-policy",
+           decide: "tag-decide", execute: "tag-execute", verify: "tag-verify" }[stage] || "tag-detect";
+}
+
+async function toggleSimulation() {
+  simRunning = !simRunning;
+  const btn = document.getElementById("sim-toggle");
+  const dot = document.getElementById("live-dot");
+  const label = document.getElementById("live-label");
+  if (simRunning) {
+    btn.textContent = "Stop live simulation";
+    btn.classList.add("running");
+    dot.classList.add("on");
+    label.textContent = "Live — recovering payments";
+    tick();
+    simTimer = setInterval(tick, 2500);
+  } else {
+    btn.textContent = "Start live simulation";
+    btn.classList.remove("running");
+    dot.classList.remove("on");
+    label.textContent = "Simulation stopped";
+    clearInterval(simTimer);
+  }
+}
+
+async function tick() {
+  try {
+    await fetch(`${API}/demo/live-tick`, { method: "POST" });
+  } catch (e) { console.error(e); }
+  refreshAll();
+}
+
+async function seedBatch() {
+  const wasRunning = simRunning;
+  if (wasRunning) toggleSimulation();
+  await fetch(`${API}/demo/seed?count=40`, { method: "POST" });
+  refreshAll();
+}
+
+async function resetDemo() {
+  if (simRunning) toggleSimulation();
+  await fetch(`${API}/demo/reset`, { method: "POST" });
+  recentRates = [];
+  knownFeedIds = new Set();
+  document.getElementById("feed").innerHTML = "";
+  refreshAll();
+}
+
+async function refreshAll() {
+  const [metrics, payments, feed, compliance] = await Promise.all([
+    fetch(`${API}/metrics`).then(r => r.json()),
+    fetch(`${API}/payments?limit=12`).then(r => r.json()),
+    fetch(`${API}/activity/recent?limit=30`).then(r => r.json()),
+    fetch(`${API}/compliance/report`).then(r => r.json()),
+  ]);
+  renderHero(metrics);
+  renderMetrics(metrics);
+  renderPayments(payments);
+  renderFeed(feed);
+  renderCompliance(compliance);
+}
+
+function renderCompliance(c) {
+  const stats = [
+    { num: c.compliant_escalation.afa_blocks_triggered, cap: "Silent retries blocked for exceeding the ₹15,000 AFA-free limit" },
+    { num: c.compliant_escalation.rerouted_to_payment_link_instead_of_silent_retry, cap: "Rerouted to a customer-authenticated payment link, not abandoned" },
+    { num: c.compliant_escalation.pre_debit_notices_successfully_sent, cap: "24-hour pre-debit notices successfully delivered before a retry" },
+    { num: c.reconciliation.double_charges_prevented, cap: "Ambiguous transactions confirmed already-paid — no duplicate charge attempted" },
+  ];
+  document.getElementById("compliance-grid").innerHTML = stats.map(s => `
+    <div class="compliance-stat">
+      <div class="num">${s.num}</div>
+      <div class="cap">${s.cap}</div>
+    </div>
+  `).join("");
+}
+
+function renderHero(m) {
+  document.getElementById("hero-rate").textContent = m.recovery_rate + "%";
+  document.getElementById("hero-revenue").textContent = fmtMoney(m.revenue_recovered);
+  document.getElementById("hero-revenue-sub").textContent =
+    m.payments_recovered > 0 ? `From ${m.payments_recovered} recovered payments` : "Directly attributed to the agent";
+
+  recentRates.push(m.recovery_rate);
+  if (recentRates.length > 24) recentRates.shift();
+  drawSparkline();
+}
+
+function drawSparkline() {
+  const svg = document.getElementById("sparkline");
+  if (recentRates.length < 2) { svg.innerHTML = ""; return; }
+  const w = 140, h = 40, pad = 4;
+  const max = Math.max(...recentRates, 1), min = Math.min(...recentRates, 0);
+  const range = Math.max(max - min, 1);
+  const step = (w - pad * 2) / (recentRates.length - 1);
+  const pts = recentRates.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  svg.innerHTML = `<polyline points="${pts.join(" ")}" fill="none" stroke="#2F6F6B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>`;
+}
+
+function renderMetrics(m) {
+  const cards = [
+    { label: "Total failed payments", value: m.total_failed_payments, sub: "Since last reset", accent: "" },
+    { label: "Payments recovered", value: m.payments_recovered, sub: "Automatically resolved", accent: "accent-success" },
+    { label: "Active retries", value: m.active_recovery_attempts, sub: "In-flight right now", accent: "accent-warning" },
+    { label: "Escalated / given up", value: m.failed_recovery_attempts, sub: "Needs human attention", accent: "accent-danger" },
+    { label: "AI decisions made", value: m.ai_decisions_made, sub: "Logged in the audit trail", accent: "accent-teal" },
+    { label: "Guardrail interventions", value: m.guardrail_interventions, sub: "Proposals blocked and safely rerouted — expected to be > 0", accent: "accent-warning" },
+    { label: "Unsafe actions executed", value: m.unsafe_actions_executed, sub: "Guaranteed 0 by the propose/approve split, not just claimed", accent: m.unsafe_actions_executed > 0 ? "accent-danger" : "accent-success" },
+  ];
+  document.getElementById("metrics-grid").innerHTML = cards.map(c => `
+    <div class="card ${c.accent}">
+      <div class="label">${c.label}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>
+  `).join("");
+}
+
+function renderPayments(list) {
+  const body = document.getElementById("txn-body");
+  const empty = document.getElementById("txn-empty");
+  document.getElementById("txn-count").textContent = `${list.length} shown`;
+  if (!list.length) {
+    body.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  body.innerHTML = list.map(p => `
+    <tr class="txn-row" tabindex="0" onclick="viewAudit(${p.id})" onkeypress="if(event.key==='Enter') viewAudit(${p.id})">
+      <td>${p.customer_name}</td>
+      <td class="amount">${fmtMoney(p.amount)}</td>
+      <td>${p.method}</td>
+      <td><span class="status-pill status-${p.status}">${p.status.replace('_',' ')}</span></td>
+      <td style="color:var(--text-dim); font-size:12.5px;">${p.failure_reason || "—"}</td>
+    </tr>
+  `).join("");
+}
+
+function renderFeed(events) {
+  const feed = document.getElementById("feed");
+  document.getElementById("feed-count").textContent = `${events.length} events`;
+  if (!events.length) {
+    feed.innerHTML = `<div class="empty-state">No activity yet — start the live simulation to watch decisions stream in.</div>`;
+    return;
+  }
+  const html = events.map(e => {
+    const isNew = !knownFeedIds.has(e.id);
+    const blocked = e.is_safe === false;
+    return `<div class="feed-line ${isNew ? 'enter' : ''}">
+      <span class="feed-tag ${stageTagClass(e.stage)}">${e.stage}</span>
+      <span class="feed-text ${blocked ? 'feed-blocked' : ''}"><span class="cust">${e.customer}</span> — ${e.detail}</span>
+    </div>`;
+  }).join("");
+  feed.innerHTML = html;
+  events.forEach(e => knownFeedIds.add(e.id));
+}
+
+async function viewAudit(id) {
+  const logs = await fetch(`${API}/payments/${id}/audit`).then(r => r.json());
+  document.getElementById("modal-title").textContent = `Payment #${id} — full audit trail`;
+  document.getElementById("modal-sub").textContent = "Every stage the agent passed this payment through, in order.";
+  document.getElementById("modal-body").innerHTML = logs.map(l => `
+    <div class="trail-item">
+      <span class="feed-tag ${stageTagClass(l.stage)}">${l.stage}</span>
+      <span class="detail">${l.detail}</span>
+    </div>
+  `).join("");
+  document.getElementById("modal-backdrop").classList.add("open");
+}
+function closeModal() {
+  document.getElementById("modal-backdrop").classList.remove("open");
+}
+
+refreshAll();
+setInterval(refreshAll, 6000); // keep numbers fresh even without live-sim running (e.g. real webhook traffic)
+</script>
+</body>
+</html>
