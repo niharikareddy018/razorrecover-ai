@@ -181,57 +181,7 @@ curl -X POST http://localhost:8000/api/payments/fail \
 Valid `failure_code` values: `INSUFF_FUNDS`, `NETWORK_ERR`, `AUTH_FAIL`,
 `EXPIRED`, `LIMIT_EXCEEDED`, `BANK_DECLINE`.
 
-## What to say in your demo (suggested script)
-
-1. Click **Reset** so the dashboard starts from zero — a clean state makes the "before/after" obvious to anyone watching.
-2. Click **Start live simulation**. Point out the pulsing "Live" indicator and narrate what's happening: "every couple of seconds a new failed payment is coming in, and you can watch it get diagnosed, checked against our safety rules, and recovered — live, in that feed on the right."
-3. Let it run for 15-20 seconds so the Recovery rate and Revenue recovered numbers move visibly, and a few different colored status pills (recovered / retrying) show up in the table.
-4. Click a row in the transactions table to open its **audit trail** — show that the plain-English reasoning in that popup exactly matches what just scrolled through the live feed. This is the moment that proves it isn't scripted.
-5. Explain the propose/approve split — this is your strongest talking point. The AI never has unchecked authority to move money or contact customers; it's always in a "sandboxed advisor" role until policy signs off. Point at "Unsafe actions: 0" and explain that's enforced by code, not a promise.
-6. If asked "why not the full Java/Postgres/RabbitMQ stack" — explain the table above. You optimized for a working, explainable, judge-testable system in the hackathon window, and the architecture is designed so each piece can be swapped independently later.
-
-### Recording a demo video
-
-A simple, reliable recording flow:
-
-1. Start the server locally (`uvicorn app.main:app --reload --port 8000`) and open `http://localhost:8000` in a full-screen browser window.
-2. Start your screen recorder (OBS, Loom, or even the built-in screen recorder on Mac/Windows).
-3. Click **Reset**, narrate the problem for ~15 seconds over the empty dashboard ("every red or grey pill you're about to see was money that would normally just be lost...").
-4. Click **Start live simulation** and let it run for 30-45 seconds while you narrate the pipeline stages appearing in the feed.
-5. Click into one payment's audit trail and read a couple of lines aloud — this is the "proof" moment.
-6. Click **Stop live simulation**, show the final numbers, and close with the guardrails point ("zero unsafe actions, guaranteed by code").
-7. Keep the whole video to 2-3 minutes — judges watch a lot of these back to back.
-
-## Pushing this to GitHub
-
-From inside the `razorrecover-ai` folder:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: RazorRecover AI - autonomous payment recovery agent"
-```
-
-Then create a new, empty repository on GitHub (no README/license, so it doesn't conflict), and connect it:
-
-```bash
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo-name>.git
-git push -u origin main
-```
-
-If you're prompted for a password and it fails, GitHub no longer accepts your
-account password over HTTPS — use a Personal Access Token instead (GitHub →
-Settings → Developer settings → Personal access tokens), or push over SSH if
-you've already set up an SSH key with GitHub.
-
-A `.gitignore` is already included so the local SQLite database file
-(`razorrecover.db`) and Python cache files never get committed — every
-teammate or judge who clones the repo starts from a clean database
-automatically.
-
-
-## Next steps if you keep building this after the hackathon
+## Next steps if you keep building after this 
 
 1. **Real LLM diagnosis** — replace the body of `ai_diagnosis.diagnose()`
    with an API call (Claude/GPT), keep the same return shape.
